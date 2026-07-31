@@ -8,7 +8,8 @@
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "demo:resourcemanager": "ts-node-dev --transpile-only src/core/ResourceManager.demo.ts",
-    "demo:simulation": "ts-node-dev --transpile-only src/core/SimulationClock.demo.ts"
+    "demo:simulation": "ts-node-dev --transpile-only src/core/SimulationClock.demo.ts",
+    "demo:comparison": "ts-node-dev --transpile-only src/core/schedulers/SchedulerComparison.demo.ts"
   },
   "keywords": [
     "os",
