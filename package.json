@@ -1,0 +1,27 @@
+{
+  "name": "hospital360-backend",
+  "version": "1.0.0",
+  "description": "Smart Hospital Resource Scheduling & Management System - Backend (OS Simulation Kernel)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "demo:resourcemanager": "ts-node-dev --transpile-only src/core/ResourceManager.demo.ts",
+    "demo:simulation": "ts-node-dev --transpile-only src/core/SimulationClock.demo.ts"
+  },
+  "keywords": [
+    "os",
+    "scheduling",
+    "semaphore",
+    "hospital-simulation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "ts-node-dev": "^2.0.0",
+    "@types/node": "^20.14.9"
+  }
+}
