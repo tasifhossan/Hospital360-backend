@@ -107,7 +107,21 @@ export class MultilevelQueueScheduler implements Scheduler {
   }
 
   peekQueue(): Patient[] {
-    // Concatenate sub-queues in strict priority order for external inspection
+    const hasHigh = this.highQueue.length > 0;
+    const hasMedium = this.mediumQueue.length > 0;
+    const hasLow = this.lowQueue.length > 0;
+
+    if (
+      this.consecutiveHigherDispatches >= this.starvationGuardThreshold &&
+      (hasMedium || hasLow)
+    ) {
+      if (hasMedium) {
+        return [...this.mediumQueue, ...this.highQueue, ...this.lowQueue];
+      } else {
+        return [...this.lowQueue, ...this.highQueue, ...this.mediumQueue];
+      }
+    }
+
     return [...this.highQueue, ...this.mediumQueue, ...this.lowQueue];
   }
 
