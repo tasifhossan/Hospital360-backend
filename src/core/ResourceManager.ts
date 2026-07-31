@@ -125,4 +125,17 @@ export class ResourceManager {
   getPendingRequest(holderId: string): ResourceType | undefined {
     return this.pendingRequests.get(holderId);
   }
+
+  /**
+   * Dynamically increases capacity of a resource type.
+   * Leverages the existing Semaphore's release mechanism to wake up any blocked waiters.
+   */
+  increaseCapacity(resource: ResourceType, by: number): void {
+    if (by <= 0) return;
+    const pool = this.getPool(resource);
+    (pool as any).capacity += by;
+    for (let i = 0; i < by; i++) {
+      pool.release();
+    }
+  }
 }

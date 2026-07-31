@@ -39,8 +39,8 @@ export type ClockCallback = (state: {
 }) => void;
 
 export class SimulationClock {
-  private readonly resourceManager: ResourceManager;
-  private readonly scheduler: Scheduler;
+  private resourceManager: ResourceManager;
+  private scheduler: Scheduler;
   private readonly generator: PatientGenerator;
 
   private tickIntervalMs: number;
@@ -56,6 +56,7 @@ export class SimulationClock {
 
   // Callbacks
   private readonly callbacks: ClockCallback[] = [];
+  private readonly eventCallbacks: ((event: string, data: any) => void)[] = [];
 
   // Stats Tracking
   private totalWaitTimeMs = 0;
@@ -81,6 +82,37 @@ export class SimulationClock {
    */
   onTick(callback: ClockCallback): void {
     this.callbacks.push(callback);
+  }
+
+  /**
+   * Subscribe to discrete events like patient arrival or completion.
+   */
+  onEvent(callback: (event: string, data: any) => void): void {
+    this.eventCallbacks.push(callback);
+  }
+
+  private emitEvent(event: string, data: any): void {
+    this.eventCallbacks.forEach((cb) => cb(event, data));
+  }
+
+  setScheduler(scheduler: Scheduler): void {
+    this.scheduler = scheduler;
+  }
+
+  setResourceManager(resourceManager: ResourceManager): void {
+    this.resourceManager = resourceManager;
+  }
+
+  getScheduler(): Scheduler {
+    return this.scheduler;
+  }
+
+  getResourceManager(): ResourceManager {
+    return this.resourceManager;
+  }
+
+  getGenerator(): PatientGenerator {
+    return this.generator;
   }
 
   /** Starts the tick loop */
@@ -116,6 +148,10 @@ export class SimulationClock {
     return this.simulatedTime;
   }
 
+  isRunning(): boolean {
+    return this.intervalId !== null;
+  }
+
   getStats() {
     return {
       simulatedTime: this.simulatedTime,
@@ -147,6 +183,7 @@ export class SimulationClock {
       patient.status = "WAITING";
       patient.queuedAt = this.simulatedTime;
       this.scheduler.enqueue(patient);
+      this.emitEvent("patient:arrived", patient);
     }
 
     // 3. Process completed treatments
@@ -162,6 +199,7 @@ export class SimulationClock {
         
         this.completedPatients.push(patient);
         completedThisTick.push(patient);
+        this.emitEvent("patient:completed", patient);
         return false;
       }
       return true;
@@ -195,6 +233,7 @@ export class SimulationClock {
           );
 
           this.activeTreatments.push(patient);
+          this.emitEvent("patient:treatmentStarted", patient);
           scheduling = true; // Attempt to schedule the next process in the queue
         } else {
           // Head-Of-Line Blocking: FCFS scheduler cannot bypass a blocked patient

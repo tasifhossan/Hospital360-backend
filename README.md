@@ -95,7 +95,76 @@ npm run demo:comparison
 - **What is the difference between Deadlock Prevention and Deadlock Detection & Recovery?**
   *Prevention* rules out deadlocks by breaking one of the Coffman conditions (e.g., resource ordering breaks Circular Wait). *Detection & Recovery* allows the system to enter a deadlocked state, identifies it by finding a cycle in the Wait-For Graph, and recovers by preempting resources or terminating a process.
 
-## Next: Phase 5
+## Phase 5: Live Streaming Layer (Express + Socket.io Server)
 
-- REST API endpoints and Socket.io integration to stream real-time dashboard updates.
+Phase 5 wraps the simulation engine in a long-lived Express + Socket.io server to allow clients to observe and control it.
+
+### OS Analogue: Syscalls and Interrupts
+- **Express routes (REST API)** are the analogue of **System Calls (syscalls)**. They allow user-space applications (like the frontend) to invoke kernel routines (e.g. `start()`, `stop()`, `reset()`, `setScheduler()`).
+- **Socket.io broadcasts** act as **Hardware Interrupts / Event Notifications**. Instead of forcing the frontend to waste CPU cycles polling the state, the kernel pushes state snapshots (`simulation:state`) and discrete events (`patient:arrived`, `patient:treatmentStarted`, `patient:completed`) asynchronously as they happen.
+
+### Run the Server
+```bash
+npm run dev:server
+```
+Starts the server on `http://localhost:4000`.
+
+### REST Route Table (Syscalls)
+| Method | Route | Description | Body / Payload |
+|---|---|---|---|
+| `POST` | `/api/simulation/start` | Starts the simulation tick loop | None |
+| `POST` | `/api/simulation/stop` | Stops the simulation tick loop | None |
+| `POST` | `/api/simulation/reset` | Resets simulation time, ready queue, and resource allocations | None |
+| `POST` | `/api/simulation/algorithm` | Swaps the scheduler algorithm (only when stopped; returns `409` if running) | `{ "algorithm": "FCFS"\|"PRIORITY_AGING"\|"MULTILEVEL"\|"SJF" }` |
+| `GET` | `/api/simulation/state` | Returns the current JSON state snapshot | None |
+| `GET` | `/api/simulation/stats` | Returns the cumulative simulation stats | None |
+| `POST` | `/api/admin/doctors` | Dynamically increases doctor capacity (simulates resource hotplug) | `{ "count": number }` |
+| `POST` | `/api/admin/beds` | Dynamically increases icuBed capacity | `{ "count": number }` |
+| `GET` | `/api/admin/resources` | Returns the full resource table status | None |
+
+### Socket.io Events (Interrupts)
+- `simulation:state`: Periodic tick snapshot containing simulated time, active queue, treatments, resource availability, and stats.
+- `patient:arrived`: Emitted when a new patient arrives and enters the ready queue.
+- `patient:treatmentStarted`: Emitted when a patient is allocated resources and starts treatment.
+- `patient:completed`: Emitted when treatment finishes and resources are released.
+
+### Manual Verification
+1. **Start the server:**
+   ```bash
+   npm run dev:server
+   ```
+2. **Open a second terminal and run the Socket debug client:**
+   ```bash
+   npx ts-node src/server/socketClient.debug.ts
+   ```
+3. **Control the simulation via curl:**
+   - **Start simulation:**
+     ```bash
+     curl -X POST http://localhost:4000/api/simulation/start
+     ```
+   - **Check current state:**
+     ```bash
+     curl -X GET http://localhost:4000/api/simulation/state
+     ```
+   - **Try swapping algorithm while running (should fail with 409):**
+     ```bash
+     curl -X POST -H "Content-Type: application/json" -d "{\"algorithm\":\"SJF\"}" http://localhost:4000/api/simulation/algorithm
+     ```
+   - **Stop simulation:**
+     ```bash
+     curl -X POST http://localhost:4000/api/simulation/stop
+     ```
+   - **Swap algorithm (should succeed):**
+     ```bash
+     curl -X POST -H "Content-Type: application/json" -d "{\"algorithm\":\"SJF\"}" http://localhost:4000/api/simulation/algorithm
+     ```
+   - **Hotplug add doctors:**
+     ```bash
+     curl -X POST -H "Content-Type: application/json" -d "{\"count\":5}" http://localhost:4000/api/admin/doctors
+     ```
+
+## Next: Phase 6
+
+- Build the Interactive Real-Time Dashboard (frontend).
+
 

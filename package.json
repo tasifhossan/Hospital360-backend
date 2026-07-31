@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:server": "ts-node-dev --respawn --transpile-only src/server/index.ts",
     "demo:resourcemanager": "ts-node-dev --transpile-only src/core/ResourceManager.demo.ts",
     "demo:simulation": "ts-node-dev --transpile-only src/core/SimulationClock.demo.ts",
     "demo:comparison": "ts-node-dev --transpile-only src/core/schedulers/SchedulerComparison.demo.ts",
@@ -23,10 +24,17 @@
   ],
   "author": "",
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  },
   "devDependencies": {
-    "typescript": "^5.5.4",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.14.9",
+    "socket.io-client": "^4.8.3",
     "ts-node-dev": "^2.0.0",
-    "@types/node": "^20.14.9"
+    "typescript": "^5.5.4"
   }
 }
