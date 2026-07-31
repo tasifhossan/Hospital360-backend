@@ -27,6 +27,9 @@ export class ResourceManager {
   // Useful for "release everything this patient/doctor was holding".
   private readonly holderIndex: Map<string, Set<ResourceType>> = new Map();
 
+  // Pending request: holderId -> the resource type it is currently blocked waiting on.
+  private readonly pendingRequests: Map<string, ResourceType> = new Map();
+
   constructor(
     capacities: Record<ResourceType, number> = RESOURCE_CAPACITY
   ) {
@@ -50,7 +53,12 @@ export class ResourceManager {
    */
   async acquire(resource: ResourceType, holderId: string): Promise<void> {
     const pool = this.getPool(resource);
-    await pool.acquire();
+    this.pendingRequests.set(holderId, resource);
+    try {
+      await pool.acquire();
+    } finally {
+      this.pendingRequests.delete(holderId);
+    }
 
     this.allocations.get(resource)!.add(holderId);
     if (!this.holderIndex.has(holderId)) {
@@ -100,5 +108,21 @@ export class ResourceManager {
   /** What resources a given holder currently has (for deadlock cycle detection). */
   getHeldResources(holderId: string): ResourceType[] {
     return Array.from(this.holderIndex.get(holderId) ?? []);
+  }
+
+  /** Who is currently blocked waiting for a given resource (for the deadlock cycle detector). */
+  getWaitingHolders(resource: ResourceType): string[] {
+    const waiters: string[] = [];
+    this.pendingRequests.forEach((res, holderId) => {
+      if (res === resource) {
+        waiters.push(holderId);
+      }
+    });
+    return waiters;
+  }
+
+  /** What resource a given holder is currently waiting to acquire. */
+  getPendingRequest(holderId: string): ResourceType | undefined {
+    return this.pendingRequests.get(holderId);
   }
 }

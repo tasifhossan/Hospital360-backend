@@ -1,14 +1,14 @@
-# Hospital OS - Backend (Phase 3: Advanced Schedulers)
+# Hospital OS - Backend (Phase 4: Concurrency Correctness Demos)
 
 Backend "kernel" for the Smart Hospital Resource Scheduling & Management
-System. Phase 3 introduces three new scheduling policies (Priority + Aging, Multilevel Queue, and Shortest Job First) implementing a swappable interface registry, allowing performance comparison under identical workloads.
+System. Phase 4 introduces concurrency correctness proof-of-concept demos simulating Deadlocks (circular wait, detection, recovery, and resource ordering prevention) and Race Conditions (non-atomic check-then-act double bookings vs. atomic semaphore mutual exclusion).
 
 ## What's in the project so far
 
 | File | OS concept it demonstrates |
 |---|---|
 | `src/core/Semaphore.ts` | A counting semaphore built from scratch (P/V, wait/signal). Blocked callers queue in FIFO order and are woken directly by `release()` - no busy-waiting, no lost wakeups. |
-| `src/core/ResourceManager.ts` | The kernel's resource table: one semaphore per resource type (doctor, ICU bed, ventilator, OT, MRI, ambulance), plus an allocation ledger (who holds what) that Phase 4's deadlock detector will read. |
+| `src/core/ResourceManager.ts` | The kernel's resource table: one semaphore per resource type (doctor, ICU bed, ventilator, OT, MRI, ambulance), plus an allocation ledger (who holds what) and pending requests tracker that Phase 4's deadlock detector reads. |
 | `src/types/resources.ts` | Resource types + capacities (20 doctors, 10 ICU beds, 5 OTs, etc.) and priority levels, matching the hospital scenario. |
 | `src/types/patient.ts` | The `Patient` structure represents a **Process / Process Control Block (PCB)**, tracking priority, resource requests, arrival time, and execution lifecycle state. |
 | `src/core/PatientGenerator.ts` | Represents the **Workload/Arrival Process**. Supports Poisson process (exponential inter-arrival) modeling realistic, bursty traffic. |
@@ -18,6 +18,10 @@ System. Phase 3 introduces three new scheduling policies (Priority + Aging, Mult
 | `src/core/schedulers/MultilevelQueueScheduler.ts` | **Multilevel Queue (MLQ) Scheduling**. Class-separated ready queues with strict priority execution and a starvation guard limit to prevent complete starvation of lower classes. |
 | `src/core/schedulers/SjfScheduler.ts` | **Shortest Job First (SJF) Scheduling**. Non-preemptive scheduling choosing the task with the shortest treatment (burst) time. Provably optimal for minimizing average wait time. |
 | `src/core/schedulers/SchedulerRegistry.ts` | The **Scheduler Registry / Dispatch Table Analogue** allowing dynamic scheduler swapping by name at runtime. |
+| `src/core/DeadlockDetector.ts` | **Resource-Allocation Graph (RAG) / Wait-For Graph (WFG) Cycle Detection**. DFS cycle detector checking active hold and pending request ledgers. |
+| `src/core/scenarios/DeadlockScenario.demo.ts` | Circular wait simulation demo running in UNSAFE mode (deadlock detection and recovery) and SAFE mode (resource ordering prevention). |
+| `src/core/scenarios/RaceConditionScenario.demo.ts` | Race condition simulation demo running in UNSAFE mode (double-booking check-then-act) and SAFE mode (atomic semaphore guard). |
+| `src/core/scenarios/README-scenarios.md` | Concepts overview documentation for deadlocks and race conditions. |
 | `src/core/SimulationClock.ts` | The **Timer Interrupt / Scheduler Dispatch Loop**. Advances simulated time, processes arrived patients, and runs the dispatcher to allocate resources all-or-nothing (deadlock prevention). |
 | `src/core/ResourceManager.demo.ts` | Proof-of-concept: 5 "doctors" compete for 2 operation theatres at once. Shows blocking + FIFO queueing with real timestamps. |
 | `src/core/SimulationClock.demo.ts` | Phase 2 FCFS end-to-end demo: simulation clock, Poisson arrivals, FCFS ready queue, all-or-nothing allocation, and treatment completions. |
@@ -30,19 +34,38 @@ System. Phase 3 introduces three new scheduling policies (Priority + Aging, Mult
 npm install
 npm run demo:resourcemanager
 ```
-Shows blocking + FIFO queueing at the semaphore level under resource contention.
 
 ### Phase 2: Simulation Clock & FCFS Demo
 ```bash
 npm run demo:simulation
 ```
-Runs a real-time dispatch loop demonstrating Poisson arrivals, FCFS ready-queue accumulation, resource blockages, and completions over simulated time.
 
 ### Phase 3: Scheduler Comparison Benchmarking
 ```bash
 npm run demo:comparison
 ```
-Generates a single identical patient workload and runs it through all four schedulers to compare average wait time, maximum wait time, and HIGH-priority patient wait times.
+
+### Phase 4: Concurrency Correctness Demos
+
+#### Deadlock Scenario Demos
+- **UNSAFE Mode (Circular Wait, Detection & Recovery)**:
+  ```bash
+  npm run demo:deadlock:unsafe
+  ```
+- **SAFE Mode (Resource Ordering Prevention)**:
+  ```bash
+  npm run demo:deadlock:safe
+  ```
+
+#### Race Condition Demos
+- **UNSAFE Mode (Context-Interleaving Double Booking)**:
+  ```bash
+  npm run demo:race:unsafe
+  ```
+- **SAFE Mode (Atomic Semaphore Guard)**:
+  ```bash
+  npm run demo:race:safe
+  ```
 
 ## Design decisions worth mentioning in your viva
 
@@ -67,8 +90,12 @@ Generates a single identical patient workload and runs it through all four sched
   Real MLQ partitions ready queues strictly, which leads to starvation. We implement a starvation guard: after a threshold of consecutive dispatches from higher-priority queues (HIGH/MEDIUM) while lower queues are non-empty, we force a dispatch from a lower-priority queue (LOW), balancing strict class priority with fairness.
 - **Why is SJF optimal, and what is its flaw?**
   SJF is mathematically optimal for minimizing average wait time. However, it can starve long jobs (complex surgeries) indefinitely if short jobs (routine doctor checkups) keep arriving, and it requires knowing/estimating burst times in advance.
+- **Why does a Race Condition occur in Node's single-threaded event loop?**
+  Node runs on a single main thread, but asynchronous calls (using `await`) yield control back to the event loop. In `UnsafeResourcePool`, the window between check (`available > 0`) and act (`available -= 1`) is interrupted by an `await` sleep, allowing multiple concurrent ticks to check the state before it is decremented, leading to double booking. Semaphores solve this by decrementing synchronously *before* returning control.
+- **What is the difference between Deadlock Prevention and Deadlock Detection & Recovery?**
+  *Prevention* rules out deadlocks by breaking one of the Coffman conditions (e.g., resource ordering breaks Circular Wait). *Detection & Recovery* allows the system to enter a deadlocked state, identifies it by finding a cycle in the Wait-For Graph, and recovers by preempting resources or terminating a process.
 
-## Next: Phase 4
+## Next: Phase 5
 
-- Deadlock Cycle Detection (Tarjan's/DFS over the Resource-Allocation Graph) and Banker's Algorithm safety checking.
+- REST API endpoints and Socket.io integration to stream real-time dashboard updates.
 

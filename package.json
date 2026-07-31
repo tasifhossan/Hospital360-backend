@@ -9,7 +9,11 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "demo:resourcemanager": "ts-node-dev --transpile-only src/core/ResourceManager.demo.ts",
     "demo:simulation": "ts-node-dev --transpile-only src/core/SimulationClock.demo.ts",
-    "demo:comparison": "ts-node-dev --transpile-only src/core/schedulers/SchedulerComparison.demo.ts"
+    "demo:comparison": "ts-node-dev --transpile-only src/core/schedulers/SchedulerComparison.demo.ts",
+    "demo:deadlock:unsafe": "ts-node-dev --transpile-only src/core/scenarios/DeadlockScenario.demo.ts --mode=unsafe",
+    "demo:deadlock:safe": "ts-node-dev --transpile-only src/core/scenarios/DeadlockScenario.demo.ts --mode=safe",
+    "demo:race:unsafe": "ts-node-dev --transpile-only src/core/scenarios/RaceConditionScenario.demo.ts --mode=unsafe",
+    "demo:race:safe": "ts-node-dev --transpile-only src/core/scenarios/RaceConditionScenario.demo.ts --mode=safe"
   },
   "keywords": [
     "os",
