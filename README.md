@@ -163,8 +163,36 @@ Starts the server on `http://localhost:4000`.
      curl -X POST -H "Content-Type: application/json" -d "{\"count\":5}" http://localhost:4000/api/admin/doctors
      ```
 
-## Next: Phase 6
+## Phase 7: Comparison Mode & Persisted Benchmarks
 
-- Build the Interactive Real-Time Dashboard (frontend).
+Phase 7 adds formal simulation benchmarking and metrics persistence using a local SQLite database accessed via Prisma.
+
+### DB Schema Description
+We maintain two database tables in SQLite (`backend/prisma/dev.db`):
+- **`ComparisonRun`**: Represents a benchmark run execution. Records ID, timestamp, the description/seed used, and patient count.
+- **`AlgorithmResult`**: Contains the simulation benchmark results for a single scheduler run. Stores wait time, turnaround time, high-priority emergency response time, resource utilization, and count of patients served. (One `ComparisonRun` has exactly four `AlgorithmResult`s).
+- *Viva Point:* Switching to Postgres is a simple 1-line change in the `schema.prisma` datasource provider.
+
+### REST Route Table (Comparison Syscalls)
+Mounted at `/api/comparison`:
+- `POST /run` — Body: `{ "patientCount": number, "seed"?: string }`. Generates a Poisson workload, runs the workload sequentially through all 4 schedulers, computes the full metrics suite, persists them, and returns the result payload.
+- `GET /runs` — Returns list of all past comparison run headers for the selector history dropdown.
+- `GET /runs/:id` — Returns the detailed comparison run with results for all 4 schedulers.
+- `DELETE /runs/:id` — Cleans up and deletes a past comparison run.
+
+### Running a Comparison from the UI
+1. Navigate to **Comparison Mode** via the global navigation button in the top header.
+2. In the "Run New Benchmark" card, enter the desired patient workload size (e.g. 25) and hit "Start Benchmark Run".
+3. Wait for the simulation benchmarks to finish. The page will reload and populate the interactive Recharts visualization.
+4. You can reload past benchmark runs from the "Select Past Run" history dropdown.
+
+### Viva Punchline Metrics Table & OS Takeaways
+Executing a benchmark comparison run generates data reflecting textbook scheduler trade-offs:
+- **Average Waiting Time:** SJF is provably optimal and will show the lowest wait times.
+- **Emergency Response Time:** Multilevel Queue strictly isolates high-priority tasks into top-level queues, guaranteeing the lowest latency for emergencies. FCFS and SJF suffer from head-of-line blocking for late-arriving priority tasks.
+- **Priority Aging:** Priority + Aging prevents low-priority starvation by progressively boosting priority over wait time.
+- **Turnaround Time vs. Wait Time:** Wait time is the delay spent in the scheduler ready queue before allocation. Turnaround time is the total duration from arrival to completion (Wait Time + Execution/Service Time).
+- **Resource Utilization:** Measures overall busy-time percentage of hardware/hospital pools: `utilization % = (busy time) / (capacity * duration) * 100`.
+
 
 

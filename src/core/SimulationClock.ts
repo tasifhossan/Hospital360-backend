@@ -62,6 +62,15 @@ export class SimulationClock {
   private totalWaitTimeMs = 0;
   private startedPatientsCount = 0;
   private queueLengthHistory: { simulatedTime: number; length: number }[] = [];
+  private busyTimeMs: Record<ResourceType, number> = {
+    doctor: 0,
+    nurse: 0,
+    icuBed: 0,
+    ventilator: 0,
+    operationTheatre: 0,
+    mriMachine: 0,
+    ambulance: 0,
+  };
 
   constructor(
     resourceManager: ResourceManager,
@@ -142,10 +151,27 @@ export class SimulationClock {
     this.totalWaitTimeMs = 0;
     this.startedPatientsCount = 0;
     this.queueLengthHistory = [];
+    this.busyTimeMs = {
+      doctor: 0,
+      nurse: 0,
+      icuBed: 0,
+      ventilator: 0,
+      operationTheatre: 0,
+      mriMachine: 0,
+      ambulance: 0,
+    };
   }
 
   getSimulatedTime(): number {
     return this.simulatedTime;
+  }
+
+  getBusyTimeMs(): Record<ResourceType, number> {
+    return { ...this.busyTimeMs };
+  }
+
+  getCompletedPatients(): Patient[] {
+    return [...this.completedPatients];
   }
 
   isRunning(): boolean {
@@ -253,6 +279,13 @@ export class SimulationClock {
     if (this.queueLengthHistory.length > 200) {
       this.queueLengthHistory.shift();
     }
+
+    // Accumulate resource busy times
+    const status = this.resourceManager.getStatus();
+    (Object.keys(status) as ResourceType[]).forEach((res) => {
+      const inUse = status[res]?.inUse ?? 0;
+      this.busyTimeMs[res] = (this.busyTimeMs[res] ?? 0) + inUse * this.simulatedMsPerTick;
+    });
 
     // 5. Notify subscribers
     const state = {

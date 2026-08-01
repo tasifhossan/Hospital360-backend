@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// NOTE FOR VIVA/DEPLOYMENT: Swapping to Postgres later is a one-line datasource change.
+// You would change provider to "postgresql" and url to env("DATABASE_URL").
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model ComparisonRun {
+  id               String            @id @default(uuid())
+  createdAt        DateTime          @default(now())
+  workloadSeed     String            // Description or seed of patient generator workload
+  patientCount     Int
+  notes            String?
+  algorithmResults AlgorithmResult[]
+}
+
+model AlgorithmResult {
+  id                        String        @id @default(uuid())
+  runId                     String
+  run                       ComparisonRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  algorithm                 String        // SchedulerType e.g., "FCFS", "PRIORITY_AGING", "MULTILEVEL", "SJF"
+  avgWaitMs                 Int
+  maxWaitMs                 Int
+  avgTurnaroundMs           Int
+  maxTurnaroundMs           Int
+  highPriorityAvgWaitMs     Int
+  highPriorityAvgResponseMs Int
+  
+  // Choice: We store utilizationPercent as a single aggregated value (average across all resource types).
+  // This simplifies queries and frontend charting without needing a nested child table.
+  utilizationPercent        Float
+  patientsServed            Int
+}

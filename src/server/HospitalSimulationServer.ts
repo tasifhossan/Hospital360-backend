@@ -20,6 +20,7 @@ import { RESOURCE_CAPACITY } from "../types/resources";
 import { getSimulationStateSnapshot } from "./socket/broadcastState";
 import { createSimulationRouter } from "./routes/simulationRoutes";
 import { createAdminRouter } from "./routes/adminRoutes";
+import { createComparisonRouter } from "./routes/comparisonRoutes";
 
 export class HospitalSimulationServer {
   private readonly app: express.Application;
@@ -120,6 +121,7 @@ export class HospitalSimulationServer {
     // API routers
     this.app.use("/api/simulation", createSimulationRouter(this.clock, this.state));
     this.app.use("/api/admin", createAdminRouter(this.clock));
+    this.app.use("/api/comparison", createComparisonRouter());
   }
 
   /**
