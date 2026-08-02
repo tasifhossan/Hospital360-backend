@@ -14,7 +14,9 @@
     "demo:deadlock:unsafe": "ts-node-dev --transpile-only src/core/scenarios/DeadlockScenario.demo.ts --mode=unsafe",
     "demo:deadlock:safe": "ts-node-dev --transpile-only src/core/scenarios/DeadlockScenario.demo.ts --mode=safe",
     "demo:race:unsafe": "ts-node-dev --transpile-only src/core/scenarios/RaceConditionScenario.demo.ts --mode=unsafe",
-    "demo:race:safe": "ts-node-dev --transpile-only src/core/scenarios/RaceConditionScenario.demo.ts --mode=safe"
+    "demo:race:safe": "ts-node-dev --transpile-only src/core/scenarios/RaceConditionScenario.demo.ts --mode=safe",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
   },
   "keywords": [
     "os",
@@ -41,6 +43,7 @@
     "@types/node": "^20.14.9",
     "socket.io-client": "^4.8.3",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^4.1.10"
   }
 }

@@ -17,6 +17,7 @@ export interface TokenPayload {
  * Sign a payload into a JWT token. Expiry set to 8 hours.
  */
 export function signToken(payload: TokenPayload): string {
+  // TODO: Make token expiration time configurable via environment variables rather than hardcoding "8h"
   return jwt.sign(payload, JWT_SECRET as string, { expiresIn: "8h" });
 }
 
@@ -24,6 +25,7 @@ export function signToken(payload: TokenPayload): string {
  * Verify a token and return decoded payload.
  */
 export function verifyToken(token: string): TokenPayload {
+  // TODO: Add runtime schema validation (e.g. using Zod) to verify the structure and validity of the decoded TokenPayload
   return jwt.verify(token, JWT_SECRET as string) as TokenPayload;
 }
 
@@ -31,6 +33,7 @@ export function verifyToken(token: string): TokenPayload {
  * Hash a password using bcryptjs.
  */
 export async function hashPassword(password: string): Promise<string> {
+  // TODO: Make bcrypt salt rounds configurable or increase to 12 for greater security in production
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
 }

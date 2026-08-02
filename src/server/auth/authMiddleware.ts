@@ -36,6 +36,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     (req as any).user = decoded;
     next();
   } catch (error: any) {
+    // TODO: Avoid leaking detailed error messages (e.g., jwt expired vs malformed) directly to clients in production
     res.status(401).json({
       success: false,
       message: `Invalid or expired authentication token: ${error.message}`,
@@ -48,6 +49,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
  * Restricts access to specific roles. Returns 403 Forbidden if unauthorized.
  */
 export function requireRole(...allowedRoles: Array<TokenPayload["accessRole"]>) {
+  // TODO: Add validation to ensure allowedRoles is not empty, which currently results in a silent denylist for all users.
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as any).user as TokenPayload | undefined;
     if (!user) {
@@ -58,6 +60,7 @@ export function requireRole(...allowedRoles: Array<TokenPayload["accessRole"]>) 
       return;
     }
 
+    // TODO: Perform case-insensitive or normalized string comparison to avoid issues if database roles are case-variant.
     if (!allowedRoles.includes(user.accessRole)) {
       res.status(403).json({
         success: false,

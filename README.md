@@ -1,110 +1,104 @@
-# 🏥 Hospital OS - Backend Kernel
+# 🏥 Hospital360 - Smart Hospital Resource Scheduling & Management System
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
-[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
-[![Neon Postgres](https://img.shields.io/badge/Neon_PostgreSQL-00E599?style=for-the-badge&logo=postgresql&logoColor=black)](https://neon.tech/)
+An interactive, full-stack Operating System (OS) Kernel Simulation designed as a medical resource dispatch system. This project models core operating system concepts—such as counting semaphores, process schedulers, wait-for graph cycle detectors, hardware interrupts, and protection rings—inside a hospital simulation.
 
-This is the backend server hosting the core Operating System (OS) simulation engine (the "kernel") for the Hospital OS platform. It models real-time CPU scheduling, timer ticks, counting semaphores, deadlock cycle detection, access control lists, and kernel security loggers.
+### 🔗 Repositories
+* **Frontend Console**: [Hospital360-frontend](https://github.com/tasifhossan/Hospital360-frontend)
+* **Backend Kernel**: [Hospital360-backend](https://github.com/tasifhossan/Hospital360-backend)
 
 ---
 
-## 📂 Backend File & Submodule Directory
+## 📸 Demo & Screenshots
 
-| File | OS Concept Demonstrated | Technical Details |
-|---|---|---|
-| `src/core/Semaphore.ts` | Counting Semaphore | Hand-rolled P/V (wait/signal) logic. FIFO queuing of blocked processes without busy-waiting. |
-| `src/core/ResourceManager.ts` | Lock Table / Resource Ledger | Controls availability and allocation blocks of finite resource handles. |
-| `src/types/patient.ts` | Process Control Block (PCB) | Tracks scheduling priorities, CPU burst estimates, and process lifecycles. |
-| `src/core/PatientGenerator.ts` | Job Workload Generator | Synthesizes incoming tasks using a mathematical Poisson process. |
-| `src/core/schedulers/` | CPU Schedulers | Dynamic swappable scheduling policies: FCFS, SJF, Multilevel Queue, and Priority Aging. |
-| `src/core/DeadlockDetector.ts` | Resource Graph Analysis | DFS-based cycle detector evaluating wait-for states to break circular wait deadlocks. |
-| `src/core/SimulationClock.ts` | Timer Interrupt Dispatcher | Coordinates ticking intervals, dispatch loops, and resource distributions. |
+![Simulation Running](docs/demo.gif)
+*A placeholder for the real-time simulation running FCFS scheduling, resource allocations, and automatic deadlock detection.*
 
 ---
 
-## 🛠️ Running Low-Level Command-Line Demos
+## 🧩 OS-Concept-to-Feature Mapping
 
-To execute isolated OS concept simulations in the terminal, run the following commands:
+| OS Concept | Hospital Simulation Counterpart | Implementation Details & File Reference |
+| :--- | :--- | :--- |
+| **Counting Semaphore** | Medical Staff & Room Allocation | Implemented from scratch as a counting semaphore. P/V operations manage exclusive resource limits. See [Semaphore.ts](file:///d:/pr-project/hospital360/backend/src/core/Semaphore.ts). |
+| **CPU Scheduler & Dispatcher** | Treatment Queue Scheduler | Implements FCFS, SJF, Multilevel Queue, and Priority + Aging schedulers to dispatch patients to doctor/nurse pools. See [SimulationClock.ts](file:///d:/pr-project/hospital360/backend/src/core/SimulationClock.ts). |
+| **Deadlock Prevention** | All-or-Nothing Allocation | Verifies all requested resources are available before allocation, preventing hold-and-wait deadlocks. See `canAllocate` in [SimulationClock.ts](file:///d:/pr-project/hospital360/backend/src/core/SimulationClock.ts). |
+| **Deadlock Detection** | Wait-For Graph (WFG) Cycle Detection | Periodically inspects resource occupancy and pending queues to build a directed Wait-For Graph. A Depth-First Search (DFS) detects back-edge cycles. See [DeadlockDetector.ts](file:///d:/pr-project/hospital360/backend/src/core/DeadlockDetector.ts). |
+| **Hardware Timer Interrupt** | Simulation Clock Heartbeat | Uses a periodic timer interrupt loop to advance simulation state, evaluate ready queues, and log metrics. See [SimulationClock.ts](file:///d:/pr-project/hospital360/backend/src/core/SimulationClock.ts). |
+| **Protection Rings / Security Domains** | Role-Based Access Control (RBAC) | Restricts access to sensitive routes (admin, receptionist, doctor, nurse) based on JWT access roles. See [authMiddleware.ts](file:///d:/pr-project/hospital360/backend/src/server/auth/authMiddleware.ts). |
+| **Syslog Monitor** | Database Audit Logs | Secure database audit ledger capturing critical state transitions, retrying writes with backoff, and logging to a local fallback file on failure. See [auditLogger.ts](file:///d:/pr-project/hospital360/backend/src/server/auditLog/auditLogger.ts). |
 
-### 1. Counting Semaphores (Mutex Locks)
-Simulates concurrent processes contesting resource boundaries:
+---
+
+## 🛠️ Technology Stack
+
+* **Frontend**: Next.js 15, React 19, Tailwind CSS, Lucide React, Socket.io-client.
+* **Backend**: Node.js, Express, Socket.io, TypeScript, Prisma ORM, PostgreSQL (Neon).
+* **Testing**: Vitest.
+
+---
+
+## ⚡ Local Setup Instructions
+
+### Prerequisites
+- Node.js (v18+)
+- npm
+
+### 1. Backend Setup
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   - Copy `.env.example` to `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Fill in your local/cloud `DATABASE_URL` (PostgreSQL) and custom `JWT_SECRET`.
+4. Apply Prisma migrations and database seed (if configured):
+   ```bash
+   npx prisma migrate dev
+   ```
+5. Start the backend development server:
+   ```bash
+   npm run dev:server
+   ```
+   *The server will boot by default on port `4000`.*
+
+### 2. Frontend Setup
+1. Navigate to the frontend directory:
+   ```bash
+   cd ../frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure the environment variables (optional, defaults to localhost):
+   - Set `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_SOCKET_URL` in `.env.local`:
+     ```env
+     NEXT_PUBLIC_API_URL=http://localhost:4000
+     NEXT_PUBLIC_SOCKET_URL=http://localhost:4000
+     ```
+4. Run the frontend development server:
+   ```bash
+   npm run dev
+   ```
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🧪 Running Tests
+To run backend unit tests verifying Semaphore queue orders, deadlock cycle detection, and audit logger retry mechanisms:
 ```bash
-npm run demo:resourcemanager
+cd backend
+npm run test
 ```
 
-### 2. Time-Sliced FCFS Simulation Loop
-Runs the baseline scheduler under dynamic Poisson arrivals:
-```bash
-npm run demo:simulation
-```
-
-### 3. Starvation Benchmarking
-Compares wait times across all 4 scheduling policies under identical workloads:
-```bash
-npm run demo:comparison
-```
-
-### 4. Circular Wait (Deadlock) UNSAFE vs. SAFE Modes
-- **UNSAFE Mode (Detection & Recovery)**:
-  ```bash
-  npm run demo:deadlock:unsafe
-  ```
-- **SAFE Mode (Resource Ordering Prevention)**:
-  ```bash
-  npm run demo:deadlock:safe
-  ```
-
-### 5. Race Conditions UNSAFE vs. SAFE Modes
-- **UNSAFE Mode (Context-Interleaving Double Booking)**:
-  ```bash
-  npm run demo:race:unsafe
-  ```
-- **SAFE Mode (Atomic Semaphore Mutual Exclusion)**:
-  ```bash
-  npm run demo:race:safe
-  ```
-
 ---
 
-## 📡 REST System Calls & Interrupt Broker
-
-The backend exposes simulation state modifications via Express (System Calls) and notifies changes asynchronously via Socket.io (Hardware Interrupts).
-
-### Express System Call API Table
-
-| Method | Endpoint | Required Role | Description |
-|---|---|---|---|
-| `POST` | `/api/auth/login` | Public | Authenticates credentials and returns signed JWT token. |
-| `POST` | `/api/auth/create-user`| `ADMIN` | Provisions a new secure account in the Neon database. |
-| `POST` | `/api/simulation/start` | `ADMIN` | Resumes the timer interrupt tick loops. |
-| `POST` | `/api/simulation/stop` | `ADMIN` | Halts the timer interrupt tick loops. |
-| `POST` | `/api/simulation/reset` | `ADMIN` | Flushes queues, allocations, and clears simulated time. |
-| `POST` | `/api/simulation/algorithm`| `ADMIN` | Swaps active scheduler policy (allowed only when stopped). |
-| `GET` | `/api/simulation/state`| Authenticated | Queries current ready queue and allocation snapshot. |
-| `GET` | `/api/admin/resources` | `ADMIN` | Queries raw capacity and usage of counting semaphores. |
-| `POST` | `/api/admin/doctors` | `ADMIN` | Hotplugs doctor count to dynamically scale capacity. |
-| `POST` | `/api/comparison/run` | `ADMIN` | Sequential benchmark run executing all 4 policies. |
-| `GET` | `/api/audit` | `ADMIN` | Paginated query interface for system security logs. |
-
-### Socket.io Event Channels (Interrupts)
-- `simulation:state`: Broadcasts state snapshots on every simulated clock tick.
-- `patient:arrived`: Pushed when a patient process enters the Ready Queue.
-- `patient:treatmentStarted`: Pushed when resources are acquired and execution starts.
-- `patient:completed`: Pushed on thread/patient execution completion.
-
----
-
-## 🔒 Security Architecture (Phase 10)
-
-The backend implements security rings and privilege boundaries to secure the syscall interface:
-
-- **Authentication**: JWT validation layer (`jsonwebtoken`) guarding REST routes. Verifies the caller's identity before granting them access to a **Protection Domain**.
-- **Role-Based Access Control**: Privilege Rings. Restricted endpoints require a user payload containing valid roles (`ADMIN`, `RECEPTIONIST`, `DOCTOR`, or `NURSE`).
-- **Audit Logging**: Kernel System Logging (`syslog` analogue). Critical transitions are written to the database with detailed JSON trace context.
-
-### provisioned Admin Account
-- **Email**: `admin@hospital360.local`
-- **Password**: `admin_hospital_secure_2026_!`
-
+## 🌐 Production Deployment
+For step-by-step instructions on deploying the full-stack system manually on Neon/Supabase, Railway/Render, and Vercel, see the [Manual Deployment Guide](file:///d:/pr-project/hospital360/docs/DEPLOYMENT.md).

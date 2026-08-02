@@ -91,6 +91,15 @@ export class Semaphore {
     }
   }
 
+  /**
+   * Safely increases the capacity of the semaphore.
+   * Internal cast is used to mutate the readonly property.
+   */
+  increaseCapacity(by: number): void {
+    if (by <= 0) return;
+    (this as unknown as { capacity: number }).capacity += by;
+  }
+
   status() {
     return {
       name: this.name,

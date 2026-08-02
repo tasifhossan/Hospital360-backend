@@ -133,7 +133,7 @@ export class ResourceManager {
   increaseCapacity(resource: ResourceType, by: number): void {
     if (by <= 0) return;
     const pool = this.getPool(resource);
-    (pool as any).capacity += by;
+    pool.increaseCapacity(by);
     for (let i = 0; i < by; i++) {
       pool.release();
     }
