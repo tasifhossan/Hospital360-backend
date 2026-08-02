@@ -9,6 +9,7 @@
 
 import { Router, Request, Response } from "express";
 import { SimulationClock } from "../../core/SimulationClock";
+import { logAction } from "../auditLog/auditLogger";
 
 export function createAdminRouter(clock: SimulationClock): Router {
   const router = Router();
@@ -26,6 +27,8 @@ export function createAdminRouter(clock: SimulationClock): Router {
 
     const rm = clock.getResourceManager();
     rm.increaseCapacity("doctor", count);
+
+    logAction((req as any).user, "CAPACITY_INCREASED", { resource: "doctor", by: count });
 
     return res.status(200).json({
       success: true,
@@ -47,6 +50,8 @@ export function createAdminRouter(clock: SimulationClock): Router {
 
     const rm = clock.getResourceManager();
     rm.increaseCapacity("icuBed", count);
+
+    logAction((req as any).user, "CAPACITY_INCREASED", { resource: "icuBed", by: count });
 
     return res.status(200).json({
       success: true,

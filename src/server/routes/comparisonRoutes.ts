@@ -44,6 +44,11 @@ export function createComparisonRouter(): Router {
       });
       const workload = generator.generateBatch(parsedCount, 0);
 
+      const highCount = workload.filter((p) => p.priority === "HIGH").length;
+      const medCount = workload.filter((p) => p.priority === "MEDIUM").length;
+      const lowCount = workload.filter((p) => p.priority === "LOW").length;
+      console.log(`[Comparison] Workload size: ${parsedCount} patients (HIGH: ${highCount}, MEDIUM: ${medCount}, LOW: ${lowCount})`);
+
       // 2. Run simulation comparison
       const results = await ComparisonRunner.runComparison(workload);
 

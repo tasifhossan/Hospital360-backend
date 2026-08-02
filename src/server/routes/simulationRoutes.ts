@@ -13,6 +13,7 @@ import { ResourceManager } from "../../core/ResourceManager";
 import { createScheduler, SchedulerType } from "../../core/schedulers/SchedulerRegistry";
 import { getSimulationStateSnapshot } from "../socket/broadcastState";
 import { RESOURCE_CAPACITY } from "../../types/resources";
+import { logAction } from "../auditLog/auditLogger";
 
 export function createSimulationRouter(
   clock: SimulationClock,
@@ -30,6 +31,7 @@ export function createSimulationRouter(
     }
 
     clock.start();
+    logAction((req as any).user, "SIMULATION_STARTED", {});
     return res.status(200).json({
       success: true,
       message: "Simulation started successfully.",
@@ -46,6 +48,7 @@ export function createSimulationRouter(
     }
 
     clock.stop();
+    logAction((req as any).user, "SIMULATION_STOPPED", {});
     return res.status(200).json({
       success: true,
       message: "Simulation stopped successfully.",
@@ -66,6 +69,8 @@ export function createSimulationRouter(
       getCurrentTime: () => clock.getSimulatedTime(),
     });
     clock.setScheduler(freshScheduler);
+
+    logAction((req as any).user, "SIMULATION_RESET", {});
 
     return res.status(200).json({
       success: true,
@@ -92,11 +97,14 @@ export function createSimulationRouter(
       });
     }
 
+    const oldAlgo = state.currentAlgorithm;
     state.currentAlgorithm = algorithm as SchedulerType;
     const freshScheduler = createScheduler(state.currentAlgorithm, {
       getCurrentTime: () => clock.getSimulatedTime(),
     });
     clock.setScheduler(freshScheduler);
+
+    logAction((req as any).user, "ALGORITHM_SWITCHED", { from: oldAlgo, to: algorithm });
 
     return res.status(200).json({
       success: true,

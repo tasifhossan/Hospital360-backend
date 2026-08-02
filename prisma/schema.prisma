@@ -4,8 +4,8 @@
 // NOTE FOR VIVA/DEPLOYMENT: Swapping to Postgres later is a one-line datasource change.
 // You would change provider to "postgresql" and url to env("DATABASE_URL").
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -37,4 +37,66 @@ model AlgorithmResult {
   // This simplifies queries and frontend charting without needing a nested child table.
   utilizationPercent        Float
   patientsServed            Int
+}
+
+model RegisteredPatient {
+  id                  String   @id @default(uuid())
+  name                String
+  condition           String
+  priority            String   // "HIGH" | "MEDIUM" | "LOW"
+  requiredResources   String[]
+  status              String   @default("REGISTERED") // "REGISTERED" | "INJECTED_TO_QUEUE" | "CANCELLED"
+  registeredAt        DateTime @default(now())
+  registeredBy        String
+  simulationPatientId String?
+}
+
+model StaffMember {
+  id           String        @id @default(uuid())
+  name         String
+  role         String        // "DOCTOR" | "NURSE"
+  status       String        // "ACTIVE" | "OFF_SHIFT"
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+  user         User?
+}
+
+model Appointment {
+  id          String      @id @default(uuid())
+  patientName String
+  staffId     String
+  staff       StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  reason      String
+  status      String      @default("SCHEDULED") // "SCHEDULED" | "COMPLETED" | "CANCELLED"
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum AccessRole {
+  ADMIN
+  RECEPTIONIST
+  DOCTOR
+  NURSE
+}
+
+model User {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  passwordHash   String
+  accessRole     AccessRole
+  staffMemberId  String?      @unique
+  staffMember    StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  auditLogs      AuditLog[]
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail  String
+  action     String
+  details    Json
+  timestamp  DateTime @default(now())
 }

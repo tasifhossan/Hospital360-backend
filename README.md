@@ -1,54 +1,53 @@
-# Hospital OS - Backend (Phase 4: Concurrency Correctness Demos)
+# 🏥 Hospital OS - Backend Kernel
 
-Backend "kernel" for the Smart Hospital Resource Scheduling & Management
-System. Phase 4 introduces concurrency correctness proof-of-concept demos simulating Deadlocks (circular wait, detection, recovery, and resource ordering prevention) and Race Conditions (non-atomic check-then-act double bookings vs. atomic semaphore mutual exclusion).
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![Neon Postgres](https://img.shields.io/badge/Neon_PostgreSQL-00E599?style=for-the-badge&logo=postgresql&logoColor=black)](https://neon.tech/)
 
-## What's in the project so far
+This is the backend server hosting the core Operating System (OS) simulation engine (the "kernel") for the Hospital OS platform. It models real-time CPU scheduling, timer ticks, counting semaphores, deadlock cycle detection, access control lists, and kernel security loggers.
 
-| File | OS concept it demonstrates |
-|---|---|
-| `src/core/Semaphore.ts` | A counting semaphore built from scratch (P/V, wait/signal). Blocked callers queue in FIFO order and are woken directly by `release()` - no busy-waiting, no lost wakeups. |
-| `src/core/ResourceManager.ts` | The kernel's resource table: one semaphore per resource type (doctor, ICU bed, ventilator, OT, MRI, ambulance), plus an allocation ledger (who holds what) and pending requests tracker that Phase 4's deadlock detector reads. |
-| `src/types/resources.ts` | Resource types + capacities (20 doctors, 10 ICU beds, 5 OTs, etc.) and priority levels, matching the hospital scenario. |
-| `src/types/patient.ts` | The `Patient` structure represents a **Process / Process Control Block (PCB)**, tracking priority, resource requests, arrival time, and execution lifecycle state. |
-| `src/core/PatientGenerator.ts` | Represents the **Workload/Arrival Process**. Supports Poisson process (exponential inter-arrival) modeling realistic, bursty traffic. |
-| `src/core/schedulers/Scheduler.ts` | The **Scheduler Interface (Policy Pattern)**, separating scheduling decisions from the dispatch mechanism to allow hot-swapping algorithms. |
-| `src/core/schedulers/FcfsScheduler.ts` | **First-Come, First-Served (FCFS) Scheduling**. Baseline FIFO ready queue. Exposes convoy effects and head-of-line blocking. |
-| `src/core/schedulers/PriorityAgingScheduler.ts` | **Priority Scheduling with Aging**. Dynamic priority boosting based on queue wait time to prevent starvation of low-priority tasks. |
-| `src/core/schedulers/MultilevelQueueScheduler.ts` | **Multilevel Queue (MLQ) Scheduling**. Class-separated ready queues with strict priority execution and a starvation guard limit to prevent complete starvation of lower classes. |
-| `src/core/schedulers/SjfScheduler.ts` | **Shortest Job First (SJF) Scheduling**. Non-preemptive scheduling choosing the task with the shortest treatment (burst) time. Provably optimal for minimizing average wait time. |
-| `src/core/schedulers/SchedulerRegistry.ts` | The **Scheduler Registry / Dispatch Table Analogue** allowing dynamic scheduler swapping by name at runtime. |
-| `src/core/DeadlockDetector.ts` | **Resource-Allocation Graph (RAG) / Wait-For Graph (WFG) Cycle Detection**. DFS cycle detector checking active hold and pending request ledgers. |
-| `src/core/scenarios/DeadlockScenario.demo.ts` | Circular wait simulation demo running in UNSAFE mode (deadlock detection and recovery) and SAFE mode (resource ordering prevention). |
-| `src/core/scenarios/RaceConditionScenario.demo.ts` | Race condition simulation demo running in UNSAFE mode (double-booking check-then-act) and SAFE mode (atomic semaphore guard). |
-| `src/core/scenarios/README-scenarios.md` | Concepts overview documentation for deadlocks and race conditions. |
-| `src/core/SimulationClock.ts` | The **Timer Interrupt / Scheduler Dispatch Loop**. Advances simulated time, processes arrived patients, and runs the dispatcher to allocate resources all-or-nothing (deadlock prevention). |
-| `src/core/ResourceManager.demo.ts` | Proof-of-concept: 5 "doctors" compete for 2 operation theatres at once. Shows blocking + FIFO queueing with real timestamps. |
-| `src/core/SimulationClock.demo.ts` | Phase 2 FCFS end-to-end demo: simulation clock, Poisson arrivals, FCFS ready queue, all-or-nothing allocation, and treatment completions. |
-| `src/core/schedulers/SchedulerComparison.demo.ts` | Phase 3 comparison benchmark: runs all 4 scheduling algorithms under the exact same patient workload sequence to compare wait-time metrics. |
+---
 
-## Run the Demos
+## 📂 Backend File & Submodule Directory
 
-### Phase 1: Resource Manager Demo
+| File | OS Concept Demonstrated | Technical Details |
+|---|---|---|
+| `src/core/Semaphore.ts` | Counting Semaphore | Hand-rolled P/V (wait/signal) logic. FIFO queuing of blocked processes without busy-waiting. |
+| `src/core/ResourceManager.ts` | Lock Table / Resource Ledger | Controls availability and allocation blocks of finite resource handles. |
+| `src/types/patient.ts` | Process Control Block (PCB) | Tracks scheduling priorities, CPU burst estimates, and process lifecycles. |
+| `src/core/PatientGenerator.ts` | Job Workload Generator | Synthesizes incoming tasks using a mathematical Poisson process. |
+| `src/core/schedulers/` | CPU Schedulers | Dynamic swappable scheduling policies: FCFS, SJF, Multilevel Queue, and Priority Aging. |
+| `src/core/DeadlockDetector.ts` | Resource Graph Analysis | DFS-based cycle detector evaluating wait-for states to break circular wait deadlocks. |
+| `src/core/SimulationClock.ts` | Timer Interrupt Dispatcher | Coordinates ticking intervals, dispatch loops, and resource distributions. |
+
+---
+
+## 🛠️ Running Low-Level Command-Line Demos
+
+To execute isolated OS concept simulations in the terminal, run the following commands:
+
+### 1. Counting Semaphores (Mutex Locks)
+Simulates concurrent processes contesting resource boundaries:
 ```bash
-npm install
 npm run demo:resourcemanager
 ```
 
-### Phase 2: Simulation Clock & FCFS Demo
+### 2. Time-Sliced FCFS Simulation Loop
+Runs the baseline scheduler under dynamic Poisson arrivals:
 ```bash
 npm run demo:simulation
 ```
 
-### Phase 3: Scheduler Comparison Benchmarking
+### 3. Starvation Benchmarking
+Compares wait times across all 4 scheduling policies under identical workloads:
 ```bash
 npm run demo:comparison
 ```
 
-### Phase 4: Concurrency Correctness Demos
-
-#### Deadlock Scenario Demos
-- **UNSAFE Mode (Circular Wait, Detection & Recovery)**:
+### 4. Circular Wait (Deadlock) UNSAFE vs. SAFE Modes
+- **UNSAFE Mode (Detection & Recovery)**:
   ```bash
   npm run demo:deadlock:unsafe
   ```
@@ -57,142 +56,55 @@ npm run demo:comparison
   npm run demo:deadlock:safe
   ```
 
-#### Race Condition Demos
+### 5. Race Conditions UNSAFE vs. SAFE Modes
 - **UNSAFE Mode (Context-Interleaving Double Booking)**:
   ```bash
   npm run demo:race:unsafe
   ```
-- **SAFE Mode (Atomic Semaphore Guard)**:
+- **SAFE Mode (Atomic Semaphore Mutual Exclusion)**:
   ```bash
   npm run demo:race:safe
   ```
 
-## Design decisions worth mentioning in your viva
+---
 
-- **Why a hand-rolled semaphore instead of a library?** So the P(S)/V(S)
-  logic is visible and explainable line-by-line, not hidden in a dependency.
-- **Why release() hands the slot directly to the oldest waiter** instead of
-  incrementing the counter and letting waiters race to re-check it? This
-  avoids the classic "lost wakeup" race condition and guarantees FCFS
-  fairness at the semaphore level.
-- **Why track an allocation ledger (`holderIndex`) in `ResourceManager`?**
-  This is the Resource-Allocation Graph data Phase 4 needs to detect
-  deadlock (e.g. Doctor A holds ICU bed + wants OT, Doctor B holds OT +
-  wants ICU bed) via cycle detection, and to implement a Banker's
-  Algorithm-style safety check before granting a request.
-- **Why enforce All-or-Nothing resource acquisition?**
-  Under FCFS, holding partial resources while waiting for others is the direct precursor to deadlock (Hold & Wait condition). Enforcing all-or-nothing allocation prevents deadlocks but exposes head-of-line (HOL) blocking.
-- **Why model arrivals using an Exponential distribution (Poisson Process)?**
-  Workloads in real systems are not perfectly uniform. In queueing theory, an exponential inter-arrival distribution is the standard mathematical model for memoryless, random arrival processes (e.g., job arrivals, packet arrivals, or emergency patients).
-- **How does Priority Aging prevent starvation?**
-  A pure priority scheduler will starve low-priority tasks if high-priority tasks keep arriving. The aging formula `effectiveScore = PRIORITY_WEIGHT[priority] - (waitTimeMs / agingRateMs)` dynamically reduces a task's priority weight score (increasing its scheduling importance) the longer it waits, eventually ensuring it gets scheduled.
-- **What is the compromise in the Multilevel Queue starvation guard?**
-  Real MLQ partitions ready queues strictly, which leads to starvation. We implement a starvation guard: after a threshold of consecutive dispatches from higher-priority queues (HIGH/MEDIUM) while lower queues are non-empty, we force a dispatch from a lower-priority queue (LOW), balancing strict class priority with fairness.
-- **Why is SJF optimal, and what is its flaw?**
-  SJF is mathematically optimal for minimizing average wait time. However, it can starve long jobs (complex surgeries) indefinitely if short jobs (routine doctor checkups) keep arriving, and it requires knowing/estimating burst times in advance.
-- **Why does a Race Condition occur in Node's single-threaded event loop?**
-  Node runs on a single main thread, but asynchronous calls (using `await`) yield control back to the event loop. In `UnsafeResourcePool`, the window between check (`available > 0`) and act (`available -= 1`) is interrupted by an `await` sleep, allowing multiple concurrent ticks to check the state before it is decremented, leading to double booking. Semaphores solve this by decrementing synchronously *before* returning control.
-- **What is the difference between Deadlock Prevention and Deadlock Detection & Recovery?**
-  *Prevention* rules out deadlocks by breaking one of the Coffman conditions (e.g., resource ordering breaks Circular Wait). *Detection & Recovery* allows the system to enter a deadlocked state, identifies it by finding a cycle in the Wait-For Graph, and recovers by preempting resources or terminating a process.
+## 📡 REST System Calls & Interrupt Broker
 
-## Phase 5: Live Streaming Layer (Express + Socket.io Server)
+The backend exposes simulation state modifications via Express (System Calls) and notifies changes asynchronously via Socket.io (Hardware Interrupts).
 
-Phase 5 wraps the simulation engine in a long-lived Express + Socket.io server to allow clients to observe and control it.
+### Express System Call API Table
 
-### OS Analogue: Syscalls and Interrupts
-- **Express routes (REST API)** are the analogue of **System Calls (syscalls)**. They allow user-space applications (like the frontend) to invoke kernel routines (e.g. `start()`, `stop()`, `reset()`, `setScheduler()`).
-- **Socket.io broadcasts** act as **Hardware Interrupts / Event Notifications**. Instead of forcing the frontend to waste CPU cycles polling the state, the kernel pushes state snapshots (`simulation:state`) and discrete events (`patient:arrived`, `patient:treatmentStarted`, `patient:completed`) asynchronously as they happen.
-
-### Run the Server
-```bash
-npm run dev:server
-```
-Starts the server on `http://localhost:4000`.
-
-### REST Route Table (Syscalls)
-| Method | Route | Description | Body / Payload |
+| Method | Endpoint | Required Role | Description |
 |---|---|---|---|
-| `POST` | `/api/simulation/start` | Starts the simulation tick loop | None |
-| `POST` | `/api/simulation/stop` | Stops the simulation tick loop | None |
-| `POST` | `/api/simulation/reset` | Resets simulation time, ready queue, and resource allocations | None |
-| `POST` | `/api/simulation/algorithm` | Swaps the scheduler algorithm (only when stopped; returns `409` if running) | `{ "algorithm": "FCFS"\|"PRIORITY_AGING"\|"MULTILEVEL"\|"SJF" }` |
-| `GET` | `/api/simulation/state` | Returns the current JSON state snapshot | None |
-| `GET` | `/api/simulation/stats` | Returns the cumulative simulation stats | None |
-| `POST` | `/api/admin/doctors` | Dynamically increases doctor capacity (simulates resource hotplug) | `{ "count": number }` |
-| `POST` | `/api/admin/beds` | Dynamically increases icuBed capacity | `{ "count": number }` |
-| `GET` | `/api/admin/resources` | Returns the full resource table status | None |
+| `POST` | `/api/auth/login` | Public | Authenticates credentials and returns signed JWT token. |
+| `POST` | `/api/auth/create-user`| `ADMIN` | Provisions a new secure account in the Neon database. |
+| `POST` | `/api/simulation/start` | `ADMIN` | Resumes the timer interrupt tick loops. |
+| `POST` | `/api/simulation/stop` | `ADMIN` | Halts the timer interrupt tick loops. |
+| `POST` | `/api/simulation/reset` | `ADMIN` | Flushes queues, allocations, and clears simulated time. |
+| `POST` | `/api/simulation/algorithm`| `ADMIN` | Swaps active scheduler policy (allowed only when stopped). |
+| `GET` | `/api/simulation/state`| Authenticated | Queries current ready queue and allocation snapshot. |
+| `GET` | `/api/admin/resources` | `ADMIN` | Queries raw capacity and usage of counting semaphores. |
+| `POST` | `/api/admin/doctors` | `ADMIN` | Hotplugs doctor count to dynamically scale capacity. |
+| `POST` | `/api/comparison/run` | `ADMIN` | Sequential benchmark run executing all 4 policies. |
+| `GET` | `/api/audit` | `ADMIN` | Paginated query interface for system security logs. |
 
-### Socket.io Events (Interrupts)
-- `simulation:state`: Periodic tick snapshot containing simulated time, active queue, treatments, resource availability, and stats.
-- `patient:arrived`: Emitted when a new patient arrives and enters the ready queue.
-- `patient:treatmentStarted`: Emitted when a patient is allocated resources and starts treatment.
-- `patient:completed`: Emitted when treatment finishes and resources are released.
+### Socket.io Event Channels (Interrupts)
+- `simulation:state`: Broadcasts state snapshots on every simulated clock tick.
+- `patient:arrived`: Pushed when a patient process enters the Ready Queue.
+- `patient:treatmentStarted`: Pushed when resources are acquired and execution starts.
+- `patient:completed`: Pushed on thread/patient execution completion.
 
-### Manual Verification
-1. **Start the server:**
-   ```bash
-   npm run dev:server
-   ```
-2. **Open a second terminal and run the Socket debug client:**
-   ```bash
-   npx ts-node src/server/socketClient.debug.ts
-   ```
-3. **Control the simulation via curl:**
-   - **Start simulation:**
-     ```bash
-     curl -X POST http://localhost:4000/api/simulation/start
-     ```
-   - **Check current state:**
-     ```bash
-     curl -X GET http://localhost:4000/api/simulation/state
-     ```
-   - **Try swapping algorithm while running (should fail with 409):**
-     ```bash
-     curl -X POST -H "Content-Type: application/json" -d "{\"algorithm\":\"SJF\"}" http://localhost:4000/api/simulation/algorithm
-     ```
-   - **Stop simulation:**
-     ```bash
-     curl -X POST http://localhost:4000/api/simulation/stop
-     ```
-   - **Swap algorithm (should succeed):**
-     ```bash
-     curl -X POST -H "Content-Type: application/json" -d "{\"algorithm\":\"SJF\"}" http://localhost:4000/api/simulation/algorithm
-     ```
-   - **Hotplug add doctors:**
-     ```bash
-     curl -X POST -H "Content-Type: application/json" -d "{\"count\":5}" http://localhost:4000/api/admin/doctors
-     ```
+---
 
-## Phase 7: Comparison Mode & Persisted Benchmarks
+## 🔒 Security Architecture (Phase 10)
 
-Phase 7 adds formal simulation benchmarking and metrics persistence using a local SQLite database accessed via Prisma.
+The backend implements security rings and privilege boundaries to secure the syscall interface:
 
-### DB Schema Description
-We maintain two database tables in SQLite (`backend/prisma/dev.db`):
-- **`ComparisonRun`**: Represents a benchmark run execution. Records ID, timestamp, the description/seed used, and patient count.
-- **`AlgorithmResult`**: Contains the simulation benchmark results for a single scheduler run. Stores wait time, turnaround time, high-priority emergency response time, resource utilization, and count of patients served. (One `ComparisonRun` has exactly four `AlgorithmResult`s).
-- *Viva Point:* Switching to Postgres is a simple 1-line change in the `schema.prisma` datasource provider.
+- **Authentication**: JWT validation layer (`jsonwebtoken`) guarding REST routes. Verifies the caller's identity before granting them access to a **Protection Domain**.
+- **Role-Based Access Control**: Privilege Rings. Restricted endpoints require a user payload containing valid roles (`ADMIN`, `RECEPTIONIST`, `DOCTOR`, or `NURSE`).
+- **Audit Logging**: Kernel System Logging (`syslog` analogue). Critical transitions are written to the database with detailed JSON trace context.
 
-### REST Route Table (Comparison Syscalls)
-Mounted at `/api/comparison`:
-- `POST /run` — Body: `{ "patientCount": number, "seed"?: string }`. Generates a Poisson workload, runs the workload sequentially through all 4 schedulers, computes the full metrics suite, persists them, and returns the result payload.
-- `GET /runs` — Returns list of all past comparison run headers for the selector history dropdown.
-- `GET /runs/:id` — Returns the detailed comparison run with results for all 4 schedulers.
-- `DELETE /runs/:id` — Cleans up and deletes a past comparison run.
-
-### Running a Comparison from the UI
-1. Navigate to **Comparison Mode** via the global navigation button in the top header.
-2. In the "Run New Benchmark" card, enter the desired patient workload size (e.g. 25) and hit "Start Benchmark Run".
-3. Wait for the simulation benchmarks to finish. The page will reload and populate the interactive Recharts visualization.
-4. You can reload past benchmark runs from the "Select Past Run" history dropdown.
-
-### Viva Punchline Metrics Table & OS Takeaways
-Executing a benchmark comparison run generates data reflecting textbook scheduler trade-offs:
-- **Average Waiting Time:** SJF is provably optimal and will show the lowest wait times.
-- **Emergency Response Time:** Multilevel Queue strictly isolates high-priority tasks into top-level queues, guaranteeing the lowest latency for emergencies. FCFS and SJF suffer from head-of-line blocking for late-arriving priority tasks.
-- **Priority Aging:** Priority + Aging prevents low-priority starvation by progressively boosting priority over wait time.
-- **Turnaround Time vs. Wait Time:** Wait time is the delay spent in the scheduler ready queue before allocation. Turnaround time is the total duration from arrival to completion (Wait Time + Execution/Service Time).
-- **Resource Utilization:** Measures overall busy-time percentage of hardware/hospital pools: `utilization % = (busy time) / (capacity * duration) * 100`.
-
-
+### provisioned Admin Account
+- **Email**: `admin@hospital360.local`
+- **Password**: `admin_hospital_secure_2026_!`
 

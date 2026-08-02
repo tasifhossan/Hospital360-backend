@@ -21,6 +21,12 @@ import { getSimulationStateSnapshot } from "./socket/broadcastState";
 import { createSimulationRouter } from "./routes/simulationRoutes";
 import { createAdminRouter } from "./routes/adminRoutes";
 import { createComparisonRouter } from "./routes/comparisonRoutes";
+import { createPatientRegistrationRouter } from "./routes/patientRegistrationRoutes";
+import { createStaffRouter } from "./routes/staffRoutes";
+import { createAppointmentRouter } from "./routes/appointmentRoutes";
+import { requireAuth, requireRole } from "./auth/authMiddleware";
+import { createAuthRouter } from "./routes/authRoutes";
+import { createAuditRouter } from "./routes/auditRoutes";
 
 export class HospitalSimulationServer {
   private readonly app: express.Application;
@@ -118,10 +124,40 @@ export class HospitalSimulationServer {
       res.status(200).json({ status: "healthy", timestamp: new Date() });
     });
 
-    // API routers
-    this.app.use("/api/simulation", createSimulationRouter(this.clock, this.state));
-    this.app.use("/api/admin", createAdminRouter(this.clock));
-    this.app.use("/api/comparison", createComparisonRouter());
+    // Public Auth Router
+    this.app.use("/api/auth", createAuthRouter());
+
+    // Protected Audit Router (ADMIN only)
+    this.app.use("/api/audit", requireAuth, requireRole("ADMIN"), createAuditRouter());
+
+    // Protect Simulation configuration and control (start/stop/reset/algorithm -> ADMIN only)
+    this.app.post("/api/simulation/start", requireAuth, requireRole("ADMIN"), (req, res, next) => next());
+    this.app.post("/api/simulation/stop", requireAuth, requireRole("ADMIN"), (req, res, next) => next());
+    this.app.post("/api/simulation/reset", requireAuth, requireRole("ADMIN"), (req, res, next) => next());
+    this.app.post("/api/simulation/algorithm", requireAuth, requireRole("ADMIN"), (req, res, next) => next());
+    
+    // Mount Simulation router (GET-only subroutes /state, /stats require auth but have no role restriction)
+    this.app.use("/api/simulation", requireAuth, createSimulationRouter(this.clock, this.state));
+
+    // Protect hardware capacity management (ADMIN only)
+    this.app.use("/api/admin", requireAuth, requireRole("ADMIN"), createAdminRouter(this.clock));
+
+    // Protect comparison execution (POST /run and DELETE /runs/:id require ADMIN)
+    this.app.post("/api/comparison/run", requireAuth, requireRole("ADMIN"), (req, res, next) => next());
+    this.app.delete("/api/comparison/runs/:id", requireAuth, requireRole("ADMIN"), (req, res, next) => next());
+    this.app.use("/api/comparison", requireAuth, createComparisonRouter());
+
+    // Protect patient operations (POST/PUT/DELETE require ADMIN or RECEPTIONIST)
+    this.app.post("/api/patients", requireAuth, requireRole("ADMIN", "RECEPTIONIST"), (req, res, next) => next());
+    this.app.put("/api/patients/:id", requireAuth, requireRole("ADMIN", "RECEPTIONIST"), (req, res, next) => next());
+    this.app.delete("/api/patients/:id", requireAuth, requireRole("ADMIN", "RECEPTIONIST"), (req, res, next) => next());
+    this.app.use("/api/patients", requireAuth, createPatientRegistrationRouter(this.clock));
+
+    // Protect staff roster (ADMIN only)
+    this.app.use("/api/staff", requireAuth, requireRole("ADMIN"), createStaffRouter());
+
+    // Protect appointments (ADMIN or RECEPTIONIST only)
+    this.app.use("/api/appointments", requireAuth, requireRole("ADMIN", "RECEPTIONIST"), createAppointmentRouter());
   }
 
   /**
